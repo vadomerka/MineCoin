@@ -12,13 +12,13 @@
     </parent>
 
     <groupId>com.minecoin</groupId>
-    <artifactId>minecoin-parent</artifactId>
+    <artifactId>MineCoin</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>MineCoin</name>
 
     <modules>
-
+        <module>UserService</module>
     </modules>
 
     <properties>
