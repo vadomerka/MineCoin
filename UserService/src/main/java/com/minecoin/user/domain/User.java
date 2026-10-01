@@ -27,7 +27,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, updatable = false, length = 32)
+    @Column(nullable = false, length = 32)
     private String username;
 
     @Column(nullable = false)
@@ -73,6 +73,14 @@ public class User {
     }
 
     public void delete() {
+        if (isDeleted()) {
+            return;
+        }
+        String compactId = id.toString().replace("-", "");
+        username = "~deleted-" + compactId.substring(0, 23);
+        email = id + "@deleted.invalid";
+        displayName = null;
+        passwordHash = "";
         status = UserStatus.DELETED;
     }
 
