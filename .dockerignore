@@ -4,6 +4,7 @@
 .idea/
 *.iml
 .env
+.env.local
 http/
 infra/
 frontend/dist/
