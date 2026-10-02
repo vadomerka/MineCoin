@@ -70,6 +70,23 @@ class UserTest {
                 .isInstanceOf(UserDeletedException.class);
     }
 
+    @Test
+    void promoteToAdminChangesRole() {
+        User user = User.register("bob", "bob@x.com", "hash", "Bob");
+
+        user.promoteToAdmin();
+
+        assertThat(user.getRole()).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void promoteToAdminOfDeletedUserThrows() {
+        User user = registeredUserWithId();
+        user.delete();
+
+        assertThatThrownBy(user::promoteToAdmin).isInstanceOf(UserDeletedException.class);
+    }
+
     private User registeredUserWithId() {
         User user = User.register("bob", "bob@x.com", "hash", "Bob");
         ReflectionTestUtils.setField(user, "id", ID);
