@@ -39,6 +39,8 @@ server {
     }
 
     location / {
+        add_header X-Request-Id $request_id always;
+        add_header Cache-Control "no-cache" always;
         try_files $uri $uri/ /index.html;
     }
 }

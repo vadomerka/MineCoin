@@ -5,10 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>MineCoin</title>
     <link rel="stylesheet" href="css/pico-2.1.1.min.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script type="module" src="js/main.js"></script>
 </head>
 <body>
+<header class="container">
+    <nav>
+        <ul>
+            <li><strong>MineCoin</strong></li>
+        </ul>
+        <ul id="user-menu" hidden>
+            <li id="current-username"></li>
+            <li><button id="logout-button" class="secondary outline">Выйти</button></li>
+        </ul>
+    </nav>
+</header>
+
 <main class="container">
-    <h1>MineCoin</h1>
+    <section id="auth-screen" hidden>
+        <article id="login-card">
+            <header><h2>Вход</h2></header>
+            <form id="login-form">
+                <label>
+                    Логин
+                    <input name="username" autocomplete="username" required maxlength="32">
+                </label>
+                <label>
+                    Пароль
+                    <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <button type="submit">Войти</button>
+            </form>
+            <footer>Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a></footer>
+        </article>
+
+        <article id="register-card" hidden>
+            <header><h2>Регистрация</h2></header>
+            <form id="register-form">
+                <label>
+                    Логин
+                    <input name="username" autocomplete="username" required minlength="3" maxlength="32"
+                           pattern="[A-Za-z0-9_]+">
+                    <small>От 3 до 32 символов: латинские буквы, цифры и _</small>
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required maxlength="255">
+                </label>
+                <label>
+                    Имя (необязательно)
+                    <input name="displayName" autocomplete="nickname" maxlength="64">
+                </label>
+                <label>
+                    Пароль
+                    <input name="password" type="password" autocomplete="new-password" required minlength="8"
+                           maxlength="72">
+                    <small>От 8 до 72 символов</small>
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <footer>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></footer>
+        </article>
+    </section>
+
+    <section id="app-screen" hidden>
+        <h2 id="greeting"></h2>
+    </section>
 </main>
 </body>
 </html>

@@ -1,0 +1,9 @@
+.form-error,
+.field-error {
+    color: var(--pico-del-color);
+}
+
+#auth-screen {
+    max-width: 32rem;
+    margin: 0 auto;
+}
