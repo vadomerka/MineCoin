@@ -39,7 +39,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 @SpringBootTest(properties = {
         "spring.flyway.enabled=true",
-        "app.finance.max-operation-amount=1000"
+        "app.finance.max-operation-amount=1000",
+        "app.jwt.secret=test-secret-test-secret-test-secret-123",
+        "app.user-service.url=http://localhost:1"
 })
 class WalletServiceIT {
 
