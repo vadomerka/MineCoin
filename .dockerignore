@@ -5,6 +5,7 @@
 *.iml
 .env
 .env.local
+.env.finance.local
 http/
 infra/
 frontend/dist/

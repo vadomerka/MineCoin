@@ -1,0 +1,43 @@
+server:
+  port: ${SERVER_PORT:8082}
+  shutdown: graceful
+
+spring:
+  application:
+    name: finance-service
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  finance:
+    max-operation-amount: ${MAX_OPERATION_AMOUNT:1000}
+  jwt:
+    secret: ${JWT_SECRET}
+  user-service:
+    url: ${USER_SERVICE_URL}
+    connect-timeout: 2s
+    read-timeout: 3s
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
