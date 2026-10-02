@@ -1,5 +1,12 @@
 name: minecoin
 
+x-user-env: &user-env
+  DB_URL: ${USER_DB_URL}
+  DB_USERNAME: ${USER_DB_USERNAME}
+  DB_PASSWORD: ${USER_DB_PASSWORD}
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+  JWT_TTL: ${JWT_TTL:-1h}
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -26,9 +33,7 @@ services:
       context: .
       dockerfile: UserService/Dockerfile
     environment:
-      DB_URL: ${USER_DB_URL}
-      DB_USERNAME: ${USER_DB_USERNAME}
-      DB_PASSWORD: ${USER_DB_PASSWORD}
+      <<: *user-env
       FLYWAY_ENABLED: "true"
       SPRING_MAIN_WEB_APPLICATION_TYPE: none
     depends_on:
@@ -39,10 +44,8 @@ services:
     image: minecoin/user-service:${IMAGE_TAG:-dev}
     restart: unless-stopped
     environment:
+      <<: *user-env
       SERVER_PORT: ${USER_SERVICE_PORT:-8081}
-      DB_URL: ${USER_DB_URL}
-      DB_USERNAME: ${USER_DB_USERNAME}
-      DB_PASSWORD: ${USER_DB_PASSWORD}
     ports:
       - "${USER_SERVICE_PORT:-8081}:${USER_SERVICE_PORT:-8081}"
     depends_on:
