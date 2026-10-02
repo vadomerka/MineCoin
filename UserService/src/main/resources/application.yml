@@ -32,6 +32,11 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     ttl: ${JWT_TTL:1h}
+  create-admin:
+    enabled: ${CREATE_ADMIN_ENABLED:false}
+    username: ${ADMIN_USERNAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
 
 springdoc:
   swagger-ui:

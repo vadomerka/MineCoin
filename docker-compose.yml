@@ -61,5 +61,19 @@ services:
       start_period: 10s
     stop_grace_period: 30s
 
+  user-create-admin:
+    image: minecoin/user-service:${IMAGE_TAG:-dev}
+    profiles: [tools]
+    environment:
+      <<: *user-env
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      CREATE_ADMIN_ENABLED: "true"
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    depends_on:
+      user-migrate:
+        condition: service_completed_successfully
+
 volumes:
   postgres-data:
