@@ -41,7 +41,7 @@ public class UserService {
                 .filter(candidate -> passwordEncoder.matches(password, candidate.getPasswordHash()))
                 .orElseThrow(InvalidCredentialsException::new);
         if (user.isBlocked()) {
-            throw new UserBlockedException(user.getId());
+            throw new UserBlockedException();
         }
         return user;
     }

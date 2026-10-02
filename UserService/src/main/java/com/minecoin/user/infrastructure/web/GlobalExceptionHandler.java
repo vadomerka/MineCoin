@@ -1,6 +1,8 @@
 package com.minecoin.user.infrastructure.web;
 
 import com.minecoin.user.domain.exception.DomainException;
+import com.minecoin.user.domain.exception.InvalidCredentialsException;
+import com.minecoin.user.domain.exception.UserBlockedException;
 import com.minecoin.user.domain.exception.UserNotFoundException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ProblemDetail handleNotFound(UserNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(UserBlockedException.class)
+    public ProblemDetail handleUserBlocked(UserBlockedException ex) {
+        return problem(HttpStatus.FORBIDDEN, ex.getCode(), ex.getMessage());
     }
 
     @ExceptionHandler(DomainException.class)
