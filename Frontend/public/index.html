@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MineCoin</title>
+    <link rel="stylesheet" href="css/pico-2.1.1.min.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script type="module" src="js/main.js"></script>
+</head>
+<body>
+<header class="container">
+    <nav>
+        <ul>
+            <li><strong>MineCoin</strong></li>
+        </ul>
+        <ul id="user-menu" hidden>
+            <li id="current-username"></li>
+            <li><button id="logout-button" class="secondary outline">Выйти</button></li>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    <p id="loading" aria-busy="true" hidden>Загрузка…</p>
+
+    <section id="auth-screen" hidden>
+        <article id="login-card">
+            <header><h2>Вход</h2></header>
+            <form id="login-form">
+                <label>
+                    Логин
+                    <input name="username" autocomplete="username" required maxlength="32">
+                </label>
+                <label>
+                    Пароль
+                    <input name="password" type="password" autocomplete="current-password" required maxlength="72">
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <button type="submit">Войти</button>
+            </form>
+            <footer>Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a></footer>
+        </article>
+
+        <article id="register-card" hidden>
+            <header><h2>Регистрация</h2></header>
+            <form id="register-form">
+                <label>
+                    Логин
+                    <input name="username" autocomplete="username" required minlength="3" maxlength="32"
+                           pattern="[A-Za-z0-9_]+">
+                    <small>От 3 до 32 символов: латинские буквы, цифры и _</small>
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required maxlength="255">
+                </label>
+                <label>
+                    Имя (необязательно)
+                    <input name="displayName" autocomplete="nickname" maxlength="64">
+                </label>
+                <label>
+                    Пароль
+                    <input name="password" type="password" autocomplete="new-password" required minlength="8"
+                           maxlength="72">
+                    <small>От 8 до 72 символов</small>
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <footer>Уже есть аккаунт? <a href="#" id="show-login">Войти</a></footer>
+        </article>
+    </section>
+
+    <section id="app-screen" hidden>
+        <div class="grid">
+            <article id="wallet-card">
+                <header><h2>Кошелёк</h2></header>
+                <p class="balance"><span id="wallet-balance">—</span> MNC</p>
+                <p id="wallet-error" class="form-error" role="alert" hidden></p>
+                <form id="amount-form">
+                    <label>
+                        Сумма
+                        <input name="amount" type="number" inputmode="numeric" required min="1" step="1">
+                        <small class="amount-hint"></small>
+                    </label>
+                    <p class="form-error" role="alert" hidden></p>
+                    <p class="form-success" role="status" hidden></p>
+                    <div class="actions">
+                        <button type="submit" value="deposit">Пополнить</button>
+                        <button type="submit" value="withdraw" class="secondary">Снять</button>
+                    </div>
+                </form>
+            </article>
+
+            <article id="transfer-card">
+                <header><h2>Перевод</h2></header>
+                <form id="transfer-form">
+                    <label>
+                        Логин получателя
+                        <input name="toUsername" required maxlength="32" pattern="[A-Za-z0-9_]+"
+                               autocomplete="off">
+                    </label>
+                    <label>
+                        Сумма
+                        <input name="amount" type="number" inputmode="numeric" required min="1" step="1">
+                        <small class="amount-hint"></small>
+                    </label>
+                    <p class="form-error" role="alert" hidden></p>
+                    <p class="form-success" role="status" hidden></p>
+                    <button type="submit">Отправить</button>
+                </form>
+            </article>
+        </div>
+
+        <article id="history-card">
+            <header><h2>История операций</h2></header>
+            <p id="history-error" class="form-error" role="alert" hidden></p>
+            <p id="history-empty" hidden>Операций пока нет</p>
+            <div class="overflow-auto">
+                <table id="history-table" class="striped" hidden>
+                    <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Операция</th>
+                        <th scope="col">Сумма</th>
+                        <th scope="col">Контрагент</th>
+                    </tr>
+                    </thead>
+                    <tbody id="history-rows"></tbody>
+                </table>
+            </div>
+            <button id="history-more" class="secondary outline" hidden>Показать ещё</button>
+        </article>
+
+        <article id="profile-card">
+            <header><h2>Профиль</h2></header>
+            <div id="profile-unavailable" hidden>
+                <p id="profile-error" class="form-error" role="alert"></p>
+                <button id="profile-retry" class="secondary outline">Повторить</button>
+            </div>
+            <div id="profile-view" hidden>
+                <table>
+                    <tbody>
+                    <tr><th scope="row">Логин</th><td id="profile-username"></td></tr>
+                    <tr><th scope="row">Email</th><td id="profile-email"></td></tr>
+                    <tr><th scope="row">Имя</th><td id="profile-display-name"></td></tr>
+                    <tr><th scope="row">Роль</th><td id="profile-role"></td></tr>
+                    <tr><th scope="row">Зарегистрирован</th><td id="profile-created-at"></td></tr>
+                    </tbody>
+                </table>
+                <div class="actions">
+                    <button id="edit-profile-button">Изменить</button>
+                    <button id="delete-account-button" class="secondary outline">Удалить аккаунт</button>
+                </div>
+            </div>
+            <form id="profile-form" hidden>
+                <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required maxlength="255">
+                </label>
+                <label>
+                    Имя (необязательно)
+                    <input name="displayName" autocomplete="nickname" maxlength="64">
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <div class="actions">
+                    <button type="submit">Сохранить</button>
+                    <button type="button" id="cancel-edit-button" class="secondary outline">Отмена</button>
+                </div>
+            </form>
+        </article>
+    </section>
+
+    <dialog id="delete-dialog">
+        <article>
+            <form id="delete-form">
+                <h3>Удалить аккаунт?</h3>
+                <p>Логин, email и имя будут стёрты без возможности восстановления. Деньги на кошельке станут
+                    недоступны.</p>
+                <p class="form-error" role="alert" hidden></p>
+                <footer>
+                    <button type="button" id="cancel-delete-button" class="secondary outline">Отмена</button>
+                    <button type="submit">Удалить</button>
+                </footer>
+            </form>
+        </article>
+    </dialog>
+</main>
+</body>
+</html>

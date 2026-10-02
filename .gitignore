@@ -39,5 +39,6 @@ build/
 
 .env
 .env.local
+/.env.user.local
 .env.finance.local
 /FinanceService/.idea/
