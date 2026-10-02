@@ -1,0 +1,50 @@
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+log_format gateway '$remote_addr "$request" $status upstream=$upstream_addr '
+                   'time=$request_time request_id=$request_id';
+
+upstream user_service {
+    zone user_service 64k;
+    server ${USER_SERVICE_UPSTREAM} resolve;
+}
+
+upstream finance_service {
+    zone finance_service 64k;
+    server ${FINANCE_SERVICE_UPSTREAM} resolve;
+}
+
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    access_log /var/log/nginx/access.log gateway;
+
+    add_header X-Request-Id $request_id always;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Request-Id $request_id;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_connect_timeout 3s;
+
+    location /api/auth/ {
+        proxy_pass http://user_service;
+    }
+
+    location /api/users {
+        proxy_pass http://user_service;
+    }
+
+    location /api/wallets {
+        proxy_pass http://finance_service;
+    }
+
+    location /api/ {
+        return 404;
+    }
+
+    location / {
+        add_header X-Request-Id $request_id always;
+        add_header Cache-Control "no-cache" always;
+        try_files $uri $uri/ /index.html;
+    }
+}

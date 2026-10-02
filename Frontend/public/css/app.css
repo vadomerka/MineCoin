@@ -1,0 +1,40 @@
+.form-error,
+.field-error {
+    color: var(--pico-del-color);
+}
+
+.form-success {
+    color: var(--pico-ins-color);
+}
+
+.amount-in {
+    color: var(--pico-ins-color);
+}
+
+.amount-out {
+    color: var(--pico-del-color);
+}
+
+#history-more {
+    width: auto;
+}
+
+.balance {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pico-spacing);
+}
+
+.actions button {
+    width: auto;
+}
+
+#auth-screen {
+    max-width: 32rem;
+    margin: 0 auto;
+}
