@@ -24,7 +24,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "spring.flyway.enabled=true")
+        properties = {
+                "spring.flyway.enabled=true",
+                "app.jwt.secret=test-secret-test-secret-test-secret-123"
+        })
 class UserApiIT {
 
     private static final ParameterizedTypeReference<Map<String, Object>> JSON = new ParameterizedTypeReference<>() {
