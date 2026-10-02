@@ -2,6 +2,7 @@ import { api, getToken, onUnauthorized } from './api.js';
 import { initAuth, logout, showSessionMessage } from './auth.js';
 import { errorMessage } from './messages.js';
 import { initProfile, renderProfile } from './profile.js';
+import { initWallet, loadWallet } from './wallet.js';
 
 const authScreen = document.getElementById('auth-screen');
 const appScreen = document.getElementById('app-screen');
@@ -28,7 +29,9 @@ async function showApp() {
         if (error.status !== 401) {
             showSessionMessage(errorMessage(error));
         }
+        return;
     }
+    await loadWallet();
 }
 
 function signOut() {
@@ -43,6 +46,7 @@ onUnauthorized(() => {
 
 initAuth(showApp);
 initProfile(signOut);
+initWallet(() => {});
 
 document.getElementById('logout-button').addEventListener('click', signOut);
 

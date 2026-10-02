@@ -3,6 +3,15 @@
     color: var(--pico-del-color);
 }
 
+.form-success {
+    color: var(--pico-ins-color);
+}
+
+.balance {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;

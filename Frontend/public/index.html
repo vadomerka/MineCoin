@@ -71,6 +71,46 @@
     </section>
 
     <section id="app-screen" hidden>
+        <div class="grid">
+            <article id="wallet-card">
+                <header><h2>Кошелёк</h2></header>
+                <p class="balance"><span id="wallet-balance">—</span> MNC</p>
+                <p id="wallet-error" class="form-error" role="alert" hidden></p>
+                <form id="amount-form">
+                    <label>
+                        Сумма
+                        <input name="amount" type="number" inputmode="numeric" required min="1" step="1">
+                        <small class="amount-hint"></small>
+                    </label>
+                    <p class="form-error" role="alert" hidden></p>
+                    <p class="form-success" role="status" hidden></p>
+                    <div class="actions">
+                        <button type="submit" value="deposit">Пополнить</button>
+                        <button type="submit" value="withdraw" class="secondary">Снять</button>
+                    </div>
+                </form>
+            </article>
+
+            <article id="transfer-card">
+                <header><h2>Перевод</h2></header>
+                <form id="transfer-form">
+                    <label>
+                        Логин получателя
+                        <input name="toUsername" required maxlength="32" pattern="[A-Za-z0-9_]+"
+                               autocomplete="off">
+                    </label>
+                    <label>
+                        Сумма
+                        <input name="amount" type="number" inputmode="numeric" required min="1" step="1">
+                        <small class="amount-hint"></small>
+                    </label>
+                    <p class="form-error" role="alert" hidden></p>
+                    <p class="form-success" role="status" hidden></p>
+                    <button type="submit">Отправить</button>
+                </form>
+            </article>
+        </div>
+
         <article id="profile-card">
             <header><h2>Профиль</h2></header>
             <div id="profile-view">

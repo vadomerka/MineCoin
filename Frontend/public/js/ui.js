@@ -17,25 +17,37 @@ export function showFormError(form, error) {
     }
 }
 
+export function showFormSuccess(form, text) {
+    const message = form.querySelector('.form-success');
+    message.textContent = text;
+    message.hidden = false;
+}
+
 export function clearFormError(form) {
-    const message = form.querySelector('.form-error');
-    message.hidden = true;
-    message.textContent = '';
+    form.querySelectorAll('.form-error, .form-success').forEach(message => {
+        message.hidden = true;
+        message.textContent = '';
+    });
     form.querySelectorAll('[aria-invalid]').forEach(input => input.removeAttribute('aria-invalid'));
     form.querySelectorAll('.field-error').forEach(hint => hint.remove());
 }
 
-export async function submitWith(form, action) {
-    const button = form.querySelector('button[type="submit"]');
+export async function submitWith(form, action, submitter) {
+    const buttons = form.querySelectorAll('button[type="submit"]');
+    const busyButton = submitter || buttons[0];
     clearFormError(form);
-    button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
+    buttons.forEach(button => {
+        button.disabled = true;
+    });
+    busyButton.setAttribute('aria-busy', 'true');
     try {
         await action();
     } catch (error) {
         showFormError(form, error);
     } finally {
-        button.disabled = false;
-        button.removeAttribute('aria-busy');
+        buttons.forEach(button => {
+            button.disabled = false;
+        });
+        busyButton.removeAttribute('aria-busy');
     }
 }
