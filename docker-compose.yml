@@ -6,6 +6,7 @@ x-user-env: &user-env
   DB_PASSWORD: ${USER_DB_PASSWORD}
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
   JWT_TTL: ${JWT_TTL:-1h}
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOG_FORMAT:-ecs}
 
 x-finance-env: &finance-env
   DB_URL: ${FINANCE_DB_URL}
@@ -14,6 +15,7 @@ x-finance-env: &finance-env
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
   USER_SERVICE_URL: ${USER_SERVICE_URL}
   MAX_OPERATION_AMOUNT: ${MAX_OPERATION_AMOUNT:-1000}
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOG_FORMAT:-ecs}
 
 services:
   postgres:
@@ -24,8 +26,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       USER_DB_PASSWORD: ${USER_DB_PASSWORD}
       FINANCE_DB_PASSWORD: ${FINANCE_DB_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -54,8 +54,6 @@ services:
     environment:
       <<: *user-env
       SERVER_PORT: ${USER_SERVICE_PORT:-8081}
-    ports:
-      - "${USER_SERVICE_PORT:-8081}:${USER_SERVICE_PORT:-8081}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,8 +116,6 @@ services:
     environment:
       <<: *finance-env
       SERVER_PORT: ${FINANCE_SERVICE_PORT:-8082}
-    ports:
-      - "${FINANCE_SERVICE_PORT:-8082}:${FINANCE_SERVICE_PORT:-8082}"
     depends_on:
       postgres:
         condition: service_healthy

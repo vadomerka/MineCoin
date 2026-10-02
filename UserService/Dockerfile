@@ -14,5 +14,4 @@ RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build /workspace/UserService/target/user-service.jar app.jar
 USER app
-EXPOSE 8081
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
