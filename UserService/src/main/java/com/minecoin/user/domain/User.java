@@ -72,6 +72,13 @@ public class User {
         this.displayName = displayName;
     }
 
+    public void promoteToAdmin() {
+        if (isDeleted()) {
+            throw new UserDeletedException(id);
+        }
+        role = Role.ADMIN;
+    }
+
     public void delete() {
         if (isDeleted()) {
             return;
@@ -86,6 +93,14 @@ public class User {
 
     public boolean isDeleted() {
         return status == UserStatus.DELETED;
+    }
+
+    public boolean isBlocked() {
+        return status == UserStatus.BLOCKED;
+    }
+
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
     }
 
     @PrePersist
