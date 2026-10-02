@@ -52,7 +52,7 @@ class OperationTest {
     }
 
     private static Wallet walletWithId() {
-        Wallet wallet = Wallet.open(UUID.randomUUID());
+        Wallet wallet = new Wallet();
         ReflectionTestUtils.setField(wallet, "id", UUID.randomUUID());
         return wallet;
     }

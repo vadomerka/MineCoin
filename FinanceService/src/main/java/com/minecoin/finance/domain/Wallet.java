@@ -37,13 +37,6 @@ public class Wallet {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    public static Wallet open(UUID userId) {
-        Wallet wallet = new Wallet();
-        wallet.userId = userId;
-        wallet.balance = 0;
-        return wallet;
-    }
-
     public void deposit(long amount) {
         requirePositive(amount);
         balance = Math.addExact(balance, amount);
