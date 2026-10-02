@@ -3,6 +3,16 @@
     color: var(--pico-del-color);
 }
 
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pico-spacing);
+}
+
+.actions button {
+    width: auto;
+}
+
 #auth-screen {
     max-width: 32rem;
     margin: 0 auto;

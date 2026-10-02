@@ -71,8 +71,55 @@
     </section>
 
     <section id="app-screen" hidden>
-        <h2 id="greeting"></h2>
+        <article id="profile-card">
+            <header><h2>Профиль</h2></header>
+            <div id="profile-view">
+                <table>
+                    <tbody>
+                    <tr><th scope="row">Логин</th><td id="profile-username"></td></tr>
+                    <tr><th scope="row">Email</th><td id="profile-email"></td></tr>
+                    <tr><th scope="row">Имя</th><td id="profile-display-name"></td></tr>
+                    <tr><th scope="row">Роль</th><td id="profile-role"></td></tr>
+                    <tr><th scope="row">Зарегистрирован</th><td id="profile-created-at"></td></tr>
+                    </tbody>
+                </table>
+                <div class="actions">
+                    <button id="edit-profile-button">Изменить</button>
+                    <button id="delete-account-button" class="secondary outline">Удалить аккаунт</button>
+                </div>
+            </div>
+            <form id="profile-form" hidden>
+                <label>
+                    Email
+                    <input name="email" type="email" autocomplete="email" required maxlength="255">
+                </label>
+                <label>
+                    Имя (необязательно)
+                    <input name="displayName" autocomplete="nickname" maxlength="64">
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+                <div class="actions">
+                    <button type="submit">Сохранить</button>
+                    <button type="button" id="cancel-edit-button" class="secondary outline">Отмена</button>
+                </div>
+            </form>
+        </article>
     </section>
+
+    <dialog id="delete-dialog">
+        <article>
+            <form id="delete-form">
+                <h3>Удалить аккаунт?</h3>
+                <p>Логин, email и имя будут стёрты без возможности восстановления. Деньги на кошельке станут
+                    недоступны.</p>
+                <p class="form-error" role="alert" hidden></p>
+                <footer>
+                    <button type="button" id="cancel-delete-button" class="secondary outline">Отмена</button>
+                    <button type="submit">Удалить</button>
+                </footer>
+            </form>
+        </article>
+    </dialog>
 </main>
 </body>
 </html>
