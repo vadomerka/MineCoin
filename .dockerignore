@@ -8,4 +8,4 @@
 .env.finance.local
 http/
 infra/
-frontend/dist/
+Frontend/dist/

@@ -69,6 +69,22 @@ services:
       start_period: 10s
     stop_grace_period: 30s
 
+  frontend:
+    image: minecoin/frontend:${IMAGE_TAG:-dev}
+    build:
+      context: Frontend
+    restart: unless-stopped
+    environment:
+      USER_SERVICE_UPSTREAM: user-service:${USER_SERVICE_PORT:-8081}
+      FINANCE_SERVICE_UPSTREAM: finance-service:${FINANCE_SERVICE_PORT:-8082}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   user-create-admin:
     image: minecoin/user-service:${IMAGE_TAG:-dev}
     profiles: [tools]
