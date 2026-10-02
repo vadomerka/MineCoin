@@ -1,0 +1,10 @@
+**/target/
+**/node_modules/
+.git/
+.idea/
+*.iml
+.env
+.env.local
+http/
+infra/
+frontend/dist/
