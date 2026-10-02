@@ -39,4 +39,5 @@ build/
 
 .env
 .env.local
+.env.finance.local
 /FinanceService/.idea/
