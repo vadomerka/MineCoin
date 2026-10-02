@@ -7,6 +7,18 @@
     color: var(--pico-ins-color);
 }
 
+.amount-in {
+    color: var(--pico-ins-color);
+}
+
+.amount-out {
+    color: var(--pico-del-color);
+}
+
+#history-more {
+    width: auto;
+}
+
 .balance {
     font-size: 2rem;
     font-weight: bold;

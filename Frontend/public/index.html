@@ -22,6 +22,8 @@
 </header>
 
 <main class="container">
+    <p id="loading" aria-busy="true" hidden>Загрузка…</p>
+
     <section id="auth-screen" hidden>
         <article id="login-card">
             <header><h2>Вход</h2></header>
@@ -111,9 +113,33 @@
             </article>
         </div>
 
+        <article id="history-card">
+            <header><h2>История операций</h2></header>
+            <p id="history-error" class="form-error" role="alert" hidden></p>
+            <p id="history-empty" hidden>Операций пока нет</p>
+            <div class="overflow-auto">
+                <table id="history-table" class="striped" hidden>
+                    <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Операция</th>
+                        <th scope="col">Сумма</th>
+                        <th scope="col">Контрагент</th>
+                    </tr>
+                    </thead>
+                    <tbody id="history-rows"></tbody>
+                </table>
+            </div>
+            <button id="history-more" class="secondary outline" hidden>Показать ещё</button>
+        </article>
+
         <article id="profile-card">
             <header><h2>Профиль</h2></header>
-            <div id="profile-view">
+            <div id="profile-unavailable" hidden>
+                <p id="profile-error" class="form-error" role="alert"></p>
+                <button id="profile-retry" class="secondary outline">Повторить</button>
+            </div>
+            <div id="profile-view" hidden>
                 <table>
                     <tbody>
                     <tr><th scope="row">Логин</th><td id="profile-username"></td></tr>

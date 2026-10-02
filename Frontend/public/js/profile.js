@@ -1,16 +1,23 @@
 import { api } from './api.js';
+import { errorMessage } from './messages.js';
 import { clearFormError, submitWith } from './ui.js';
 
 const ROLE_NAMES = { USER: 'Пользователь', ADMIN: 'Администратор' };
 
 const view = document.getElementById('profile-view');
+const unavailable = document.getElementById('profile-unavailable');
+const profileError = document.getElementById('profile-error');
 const form = document.getElementById('profile-form');
 const deleteDialog = document.getElementById('delete-dialog');
 const deleteForm = document.getElementById('delete-form');
 
 let currentProfile = null;
+let onLoaded = () => {};
 
-export function initProfile(onDeleted) {
+export function initProfile(deletedHandler, loadedHandler) {
+    onLoaded = loadedHandler;
+
+    document.getElementById('profile-retry').addEventListener('click', loadProfile);
     document.getElementById('edit-profile-button').addEventListener('click', showForm);
     document.getElementById('cancel-edit-button').addEventListener('click', showView);
 
@@ -23,7 +30,6 @@ export function initProfile(onDeleted) {
                 body: { email, displayName: displayName || null },
             });
             renderProfile(profile);
-            showView();
         });
     });
 
@@ -38,12 +44,22 @@ export function initProfile(onDeleted) {
         submitWith(deleteForm, async () => {
             await api('/users/me', { method: 'DELETE' });
             deleteDialog.close();
-            onDeleted();
+            deletedHandler();
         });
     });
 }
 
-export function renderProfile(profile) {
+export async function loadProfile() {
+    try {
+        renderProfile(await api('/users/me'));
+    } catch (error) {
+        if (error.status !== 401) {
+            showUnavailable(error);
+        }
+    }
+}
+
+function renderProfile(profile) {
     currentProfile = profile;
     document.getElementById('profile-username').textContent = profile.username;
     document.getElementById('profile-email').textContent = profile.email;
@@ -51,6 +67,15 @@ export function renderProfile(profile) {
     document.getElementById('profile-role').textContent = ROLE_NAMES[profile.role] || profile.role;
     document.getElementById('profile-created-at').textContent = new Date(profile.createdAt).toLocaleString('ru-RU');
     showView();
+    onLoaded(profile);
+}
+
+function showUnavailable(error) {
+    currentProfile = null;
+    profileError.textContent = errorMessage(error);
+    form.hidden = true;
+    view.hidden = true;
+    unavailable.hidden = false;
 }
 
 function showForm() {
@@ -62,6 +87,7 @@ function showForm() {
 }
 
 function showView() {
+    unavailable.hidden = true;
     form.hidden = true;
     view.hidden = false;
 }

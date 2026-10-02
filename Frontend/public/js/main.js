@@ -1,9 +1,11 @@
-import { api, getToken, onUnauthorized } from './api.js';
+import { getToken, onUnauthorized } from './api.js';
 import { initAuth, logout, showSessionMessage } from './auth.js';
+import { initHistory, loadHistory } from './history.js';
 import { errorMessage } from './messages.js';
-import { initProfile, renderProfile } from './profile.js';
+import { initProfile, loadProfile } from './profile.js';
 import { initWallet, loadWallet } from './wallet.js';
 
+const loading = document.getElementById('loading');
 const authScreen = document.getElementById('auth-screen');
 const appScreen = document.getElementById('app-screen');
 const userMenu = document.getElementById('user-menu');
@@ -11,27 +13,24 @@ const currentUsername = document.getElementById('current-username');
 
 function showAuth() {
     document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+    loading.hidden = true;
     appScreen.hidden = true;
     userMenu.hidden = true;
     authScreen.hidden = false;
 }
 
 async function showApp() {
-    try {
-        const me = await api('/users/me');
-        currentUsername.textContent = me.username;
-        renderProfile(me);
-        authScreen.hidden = true;
-        userMenu.hidden = false;
-        appScreen.hidden = false;
-    } catch (error) {
-        showAuth();
-        if (error.status !== 401) {
-            showSessionMessage(errorMessage(error));
-        }
+    authScreen.hidden = true;
+    appScreen.hidden = true;
+    currentUsername.textContent = '';
+    loading.hidden = false;
+    await Promise.all([loadProfile(), loadWallet(), loadHistory()]);
+    if (!getToken()) {
         return;
     }
-    await loadWallet();
+    loading.hidden = true;
+    userMenu.hidden = false;
+    appScreen.hidden = false;
 }
 
 function signOut() {
@@ -45,8 +44,11 @@ onUnauthorized(() => {
 });
 
 initAuth(showApp);
-initProfile(signOut);
-initWallet(() => {});
+initProfile(signOut, profile => {
+    currentUsername.textContent = profile.username;
+});
+initWallet(loadHistory);
+initHistory();
 
 document.getElementById('logout-button').addEventListener('click', signOut);
 
