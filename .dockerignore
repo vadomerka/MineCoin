@@ -1,11 +1,9 @@
 **/target/
-**/node_modules/
 .git/
 .idea/
+.claude/
 *.iml
 .env
-.env.local
-.env.finance.local
-http/
+.env.*.local
 infra/
-Frontend/dist/
+Frontend/
