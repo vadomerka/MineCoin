@@ -9,13 +9,13 @@
 ## Состав
 
 ```mermaid
-Браузер --> Frontend (nginx Api gateway)
-
-    - "/api/wallets" --> F[finance-service]
-        - База данных finance-service --> U[user-service]
-        
-    - "/api/auth, /api/users" --> U[user-service]
-        - База данных user-service
+flowchart LR
+    B[Браузер] --> F["frontend<br/>nginx: статика + API gateway"]
+    F -- "/api/auth, /api/users" --> U[user-service]
+    F -- "/api/wallets" --> W[finance-service]
+    W -- "поиск получателя по логину" --> U
+    U --> DB1[(users_db)]
+    W --> DB2[(finance_db)]
 ```
 
 | Сервис                            | Что делает                                                 | Адрес (режим разработки)              |
