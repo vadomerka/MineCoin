@@ -99,6 +99,10 @@ public class User {
         return status == UserStatus.BLOCKED;
     }
 
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
+
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();

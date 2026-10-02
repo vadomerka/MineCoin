@@ -54,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info", "/error").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/users/me").authenticated()
+                        .requestMatchers("/api/users/me", "/api/users/lookup", "/api/users/names").authenticated()
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer

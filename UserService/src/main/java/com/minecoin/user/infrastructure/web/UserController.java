@@ -2,11 +2,16 @@ package com.minecoin.user.infrastructure.web;
 
 import com.minecoin.user.infrastructure.web.dto.PageResponse;
 import com.minecoin.user.infrastructure.web.dto.UpdateUserRequest;
+import com.minecoin.user.infrastructure.web.dto.UserRefResponse;
 import com.minecoin.user.infrastructure.web.dto.UserResponse;
 import com.minecoin.user.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -45,6 +50,16 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMe(@AuthenticationPrincipal Jwt jwt) {
         userService.delete(currentUserId(jwt));
+    }
+
+    @GetMapping("/lookup")
+    public UserRefResponse lookup(@RequestParam @NotBlank String username) {
+        return UserRefResponse.from(userService.getActiveByUsername(username));
+    }
+
+    @GetMapping("/names")
+    public List<UserRefResponse> names(@RequestParam @NotEmpty @Size(max = 100) List<UUID> ids) {
+        return userService.findAllByIds(ids).stream().map(UserRefResponse::from).toList();
     }
 
     @GetMapping

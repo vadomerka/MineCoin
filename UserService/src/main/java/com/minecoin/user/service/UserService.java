@@ -7,6 +7,8 @@ import com.minecoin.user.domain.exception.InvalidCredentialsException;
 import com.minecoin.user.domain.exception.UserBlockedException;
 import com.minecoin.user.domain.exception.UserNotFoundException;
 import com.minecoin.user.domain.exception.UsernameTakenException;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -57,6 +59,18 @@ public class UserService {
     @Transactional(readOnly = true)
     public User getById(UUID id) {
         return findActive(id);
+    }
+
+    @Transactional(readOnly = true)
+    public User getActiveByUsername(String username) {
+        return userRepository.findByUsernameIgnoreCase(username)
+                .filter(User::isActive)
+                .orElseThrow(() -> new UserNotFoundException(username));
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> findAllByIds(Collection<UUID> ids) {
+        return userRepository.findAllById(ids);
     }
 
     @Transactional(readOnly = true)

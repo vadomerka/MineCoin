@@ -195,6 +195,47 @@ class UserApiIT {
     }
 
     @Test
+    void lookupFindsOnlyActiveUsersIgnoringCase() {
+        String bobId = idOf(register("bob", "bob@x.com"));
+        register("viewer", "viewer@x.com");
+        String token = tokenOf("viewer");
+
+        ResponseEntity<Map<String, Object>> found = get("/users/lookup?username=BOB", token);
+        assertThat(found.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(found.getBody()).isEqualTo(Map.of("id", bobId, "username", "bob"));
+
+        assertError(get("/users/lookup?username=nobody", token), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
+        assertError(get("/users/lookup?username=bob", null), HttpStatus.UNAUTHORIZED, "UNAUTHORIZED");
+        jdbc.update("UPDATE users SET status = 'BLOCKED' WHERE username = 'bob'");
+        assertError(get("/users/lookup?username=bob", token), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
+    }
+
+    @Test
+    void namesReturnUsernamesForAnyStatusAndSkipUnknownIds() {
+        String bobId = idOf(register("bob", "bob@x.com"));
+        String aliceId = idOf(register("alice", "alice@x.com"));
+        delete("/users/me", tokenOf("alice"));
+        register("viewer", "viewer@x.com");
+        String token = tokenOf("viewer");
+        String unknownId = "00000000-0000-0000-0000-000000000001";
+
+        ResponseEntity<List<Map<String, Object>>> response = client.get()
+                .uri("/users/names?ids={a}&ids={b}&ids={c}", bobId, aliceId, unknownId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .toEntity(new ParameterizedTypeReference<>() {
+                });
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody())
+                .extracting(user -> user.get("id") + "=" + user.get("username"))
+                .containsExactlyInAnyOrder(
+                        bobId + "=bob",
+                        aliceId + "=~deleted-" + aliceId.replace("-", "").substring(0, 23));
+        assertError(get("/users/names", token), HttpStatus.BAD_REQUEST, "BAD_REQUEST");
+    }
+
+    @Test
     void createAdminRegistersNewAdminWhoCanLogIn() {
         userService.createAdmin("root", "root@x.com", PASSWORD);
 
