@@ -1,9 +1,9 @@
 **/target/
+**/node_modules/
 .git/
 .idea/
-.claude/
 *.iml
 .env
 .env.*.local
 infra/
-Frontend/
+Frontend/dist/
