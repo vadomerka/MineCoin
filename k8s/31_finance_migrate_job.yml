@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: finance-migrate
+  namespace: minecoin
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: finance-migrate
+          image: minecoin/finance-service:dev
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: finance-service-config
+          env:
+            - name: FLYWAY_ENABLED
+              value: "true"
+            - name: SPRING_MAIN_WEB_APPLICATION_TYPE
+              value: none
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: FINANCE_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: JWT_SECRET

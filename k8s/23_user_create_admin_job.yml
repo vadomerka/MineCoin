@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: user-create-admin
+  namespace: minecoin
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: user-create-admin
+          image: minecoin/user-service:dev
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: user-service-config
+          env:
+            - name: SPRING_MAIN_WEB_APPLICATION_TYPE
+              value: none
+            - name: CREATE_ADMIN_ENABLED
+              value: "true"
+            - name: ADMIN_USERNAME
+              value: "admin"
+            - name: ADMIN_EMAIL
+              value: "admin@example.com"
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: ADMIN_PASSWORD
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: USER_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: JWT_SECRET
