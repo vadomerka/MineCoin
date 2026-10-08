@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-service
+  namespace: minecoin
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finance-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: finance-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: finance-service
+          image: minecoin/finance-service:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: finance-service-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: FINANCE_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: minecoin-secrets
+                  key: JWT_SECRET
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            periodSeconds: 3
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-service
+  namespace: minecoin
+spec:
+  type: ClusterIP
+  selector:
+    app: finance-service
+  ports:
+    - port: 8082
+      targetPort: 8082

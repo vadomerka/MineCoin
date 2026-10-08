@@ -43,3 +43,4 @@ build/
 .env.finance.local
 /FinanceService/.idea/
 .claude/
+k8s/secrets.env

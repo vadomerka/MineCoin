@@ -1,4 +1,4 @@
-resolver 127.0.0.11 valid=10s ipv6=off;
+resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
 
 log_format gateway '$remote_addr "$request" $status upstream=$upstream_addr '
                    'time=$request_time request_id=$request_id';

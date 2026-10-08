@@ -8,4 +8,9 @@
 .env.finance.local
 http/
 infra/
+<<<<<<< Updated upstream
 Frontend/dist/
+=======
+Frontend/
+k8s/
+>>>>>>> Stashed changes
