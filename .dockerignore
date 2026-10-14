@@ -4,6 +4,8 @@
 .idea/
 *.iml
 .env
-.env.*.local
+.env.local
+.env.finance.local
+http/
 infra/
 Frontend/dist/
