@@ -1,0 +1,43 @@
+mode: dev
+replicaCount: 1
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.4.0"
+  pullPolicy: IfNotPresent
+
+admin:
+  username: admin
+  password: ""
+
+hostname: ""
+
+tls:
+  enabled: false
+  secretName: keycloak-tls
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+postgresql:
+  enabled: false
+  auth:
+    username: keycloak
+    password: ""
+    postgresPassword: ""
+    database: keycloak
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+      storageClass: standard
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi

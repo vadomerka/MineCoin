@@ -1,0 +1,10 @@
+apiVersion: v2
+name: keycloak
+description: Keycloak с режимами dev, prod и prod + TLS
+version: 0.1.0
+appVersion: "26.4.0"
+dependencies:
+  - name: postgresql
+    version: "18.12.4"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    condition: postgresql.enabled
