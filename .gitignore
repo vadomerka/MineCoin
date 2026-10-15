@@ -45,4 +45,3 @@ build/
 .claude/
 k8s/secrets.env
 /kind/secrets.env
-/kind/secrets.env.example
