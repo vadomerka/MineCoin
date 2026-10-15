@@ -1,0 +1,9 @@
+Keycloak ({{ .Values.mode }}) установлен.
+Доступ:
+{{- if .Values.tls.enabled }}
+  kubectl port-forward svc/{{ .Release.Name }}-keycloak 8443:8443 -n {{ .Release.Namespace }}
+  https://localhost:8443
+{{- else }}
+  kubectl port-forward svc/{{ .Release.Name }}-keycloak 8080:8080 -n {{ .Release.Namespace }}
+  http://localhost:8080
+{{- end }}

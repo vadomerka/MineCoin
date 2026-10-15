@@ -1,0 +1,13 @@
+mode: prod
+replicaCount: 2
+hostname: http://localhost:8080
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 768Mi
+  limits:
+    memory: 1Gi
+
+postgresql:
+  enabled: true

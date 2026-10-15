@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test-health
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+    - name: check-health
+      image: curlimages/curl
+      command:
+        - sh
+        - -c
+        - curl -fsk {{ if .Values.tls.enabled }}https{{ else }}http{{ end }}://{{ .Release.Name }}-keycloak:9000/health/ready
