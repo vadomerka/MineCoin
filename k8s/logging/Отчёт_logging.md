@@ -66,15 +66,15 @@ flowchart LR
 
 ## 2. Развёртывание VictoriaLogs
 
-**Способ — собственные манифесты** (StatefulSet + Service + PVC), а не Helm-чарт `victoria-logs-single`. Причины:
-- все манифесты проекта уже написаны вручную в одном стиле и применяются `kubectl apply`, без дополнительных инструментов;
-- для single-node VictoriaLogs нужно всего три объекта, каждый из которых понятен и описан ниже. Чарт создал бы больше объектов, каждый из которых пришлось бы разбирать.
+**Способ — собственные манифесты** (StatefulSet + Service + PVC), а не Helm-чарт `victoria-logs-single`.
+- были написаны манифесты проекта, применяются через `kubectl apply`, без дополнительных инструментов;
+- для single-node VictoriaLogs нужно всего три объекта, что было легче писать.
 
-| Объект | Зачем |
-|---|---|
-| Namespace `logging` | инфраструктура логирования отделена от приложения: её можно удалить или обновить, не трогая `minecoin` |
-| StatefulSet `victorialogs` (1 реплика) | VictoriaLogs хранит данные, поэтому ему нужны постоянное имя пода и свой диск — та же причина, что у PostgreSQL |
-| PVC `data-victorialogs-0` (2 ГиБ, `volumeClaimTemplates`) | логи переживают пересоздание пода |
+| Объект | Зачем                                                                                                                                                  |
+|---|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Namespace `logging` | инфраструктура логирования отделена от приложения: её можно удалить или обновить, не трогая `minecoin`                                                 |
+| StatefulSet `victorialogs` (1 реплика) | VictoriaLogs хранит данные, как и PostgreSQL, поэтому ему нужны постоянное имя пода и свой диск                                                        |
+| PVC `data-victorialogs-0` (2 ГиБ, `volumeClaimTemplates`) | логи переживают пересоздание пода                                                                                                                      |
 | Service `victorialogs` (headless, порт 9428) | постоянный DNS-адрес `victorialogs.logging.svc.cluster.local`, по которому Vector отправляет логи; через него же `kubectl port-forward` открывает vmui |
 
 Параметры запуска:
@@ -131,7 +131,7 @@ flowchart LR
 - пробы — `GET /health` встроенного API Vector на порту 8686;
 - ресурсы — `requests` 50m CPU / 64Mi, `limits` 256Mi.
 
-## 4. Развёртывание и проверка
+## 4. Развёртывание
 
 Приложение уже развёрнуто по [`../Отчёт.md`](../Отчёт.md). Образ `frontend` нужно пересобрать, потому что изменился конфиг nginx (сборка и загрузка — как в разделе 1 основного отчёта), затем перезапустить его поды:
 ```powershell
@@ -156,98 +156,62 @@ Vector не должен писать ошибок отправки:
 kubectl logs daemonset/vector -n logging
 ```
 
-Открыть vmui (в отдельном окне, держать открытым):
+Открыть vmui (в отдельном окне):
 ```powershell
 kubectl port-forward svc/victorialogs 9428:9428 -n logging
 ```
-Затем http://localhost:9428/select/vmui/ — по документации VictoriaLogs встроенный vmui находится именно по этому пути.
+Зайти на http://localhost:9428/select/vmui/
 
-Быстрая проверка без браузера — сколько записей пришло за 5 минут по каждому сервису:
-```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:9428/select/logsql/query" -Body @{ query = '_time:5m | stats by (service.name) count() as logs' }
-```
-
-### Как получить логи всех уровней
-
-Приложение пишет строки уровня `INFO` при каждом запросе через шлюз, `WARN` — при ошибках клиента, `ERROR` — при недоступности сервисов. Чтобы в запросах были все уровни, в PowerShell через шлюз:
-```powershell
-$base = "http://$(minikube ip):30080"
-```
-Обычные запросы и неверный пароль (401 → `WARN` в nginx):
-```powershell
-1..10 | ForEach-Object { try { Invoke-RestMethod -Uri "$base/api/wallets/limits" } catch {} ; try { Invoke-RestMethod -Method Post -Uri "$base/api/auth/login" -ContentType 'application/json' -Body '{"username":"nobody","password":"wrong-password"}' } catch {} }
-```
-Временная недоступность `user-service` (5xx → `ERROR` в nginx, предупреждение `User service call failed` в `finance-service` при переводе):
-```powershell
-kubectl scale deployment/user-service --replicas=0 -n minecoin
-```
-```powershell
-1..5 | ForEach-Object { try { Invoke-RestMethod -Uri "$base/api/users/me" } catch {} }
-```
-Затем в UI попробуй сделать перевод и вернуть сервис:
-```powershell
-kubectl scale deployment/user-service --replicas=2 -n minecoin
-```
 
 ## 5. Запросы LogsQL в vmui
 
-В vmui запрос вводится в поле Query. Временной диапазон задаётся либо в самом запросе (`_time:…`), либо переключателем времени справа вверху.
+В vmui запрос вводится в поле Query. Временной диапазон задаётся либо в самом запросе (`_time:…`).
 
-### (а) Сырые записи за последние 15 минут
-
-```
-_time:15m
-```
-Показывает все записи, пришедшие за последние 15 минут, — от всех сервисов, со всеми полями. Это первая проверка, что доставка вообще работает: видно JSON-поля Spring и nginx, метаданные Kubernetes и текстовые строки PostgreSQL с вычисленным уровнем.
-
-Для удобного чтения можно оставить только главные поля:
-```
-_time:15m | fields _time, service.name, log.level, kubernetes.pod_name, _msg
-```
-
-> Скриншот (а): `screenshots/a-raw.png` — добавить после выполнения запроса.
-
-### (б) Фильтр по полю: только ошибки
+### (а) Сырые записи за последние 5 минут
 
 ```
-_time:1h log.level:=ERROR
-```
-`log.level:=ERROR` — точное совпадение значения поля. Показывает записи уровня `ERROR` от всех источников: исключения Java-сервисов, ответы 5xx шлюза (nginx помечает их как `ERROR`) и ошибки PostgreSQL. После опыта с отключением `user-service` здесь видны ответы 5xx шлюза на запросы к этому сервису.
-
-Вариант с фильтром по числовому полю — все неуспешные HTTP-ответы:
-```
-_time:1h service.name:=frontend http.response.status_code:>=400
+_time:5m
 ```
 
-> Скриншот (б): `screenshots/b-errors.png` — добавить после выполнения запроса.
+![img.png](../../images/img.png)
+
+
+### (б) Фильтр по полю: только предупреждения
+
+```
+_time:5m log.level:=WARN
+```
+
+![img_1.png](../../images/img_1.png)
+![img_2.png](../../images/img_2.png)
 
 ### (в) `stats` с группировкой: число записей по сервисам и уровням
 
 ```
-_time:1h | stats by (service.name, log.level) count() as logs | sort by (logs desc)
+_time:5m | stats by (service.name, log.level) count() as logs
 ```
-Группирует записи за час по паре «сервис — уровень» и считает их число. Видно, какой сервис пишет больше всего и где сосредоточены предупреждения и ошибки. Например, всплеск `frontend / ERROR` и `finance-service / WARN` в момент, когда `user-service` был отключён.
 
-> Скриншот (в): `screenshots/c-stats.png` — добавить после выполнения запроса.
+![img_3.png](../../images/img_3.png)
 
 ### (г) Агрегирующий запрос: 95-й перцентиль времени ответа по адресам API
 
 ```
-_time:1h service.name:=frontend | stats by (url.path) quantile(0.95, http.request.duration_seconds) as p95, count() as requests | sort by (p95 desc) | limit 10
+_time:1h service.name:=frontend | top 5 by (http.request.method)
 ```
-Для каждого адреса, на который приходили запросы через шлюз, считается время ответа, которое не превышают 95% запросов, и число запросов. Сортировка по убыванию p95 показывает самые медленные эндпоинты. Перцентиль полезнее среднего: единичные медленные запросы не теряются. Обычно наверху оказываются запросы с записью в базу (переводы, регистрация), а не чтение статики или лимитов.
 
-Ещё два агрегирующих запроса по образцу упражнения с семинара:
-```
-_time:1h service.name:=frontend | top 5 by (url.path)
-```
-— пять самых частых адресов запросов;
-```
-_time:1h | stats by (service.name) count_uniq(kubernetes.pod_name) as pods
-```
-— сколько **разных подов** каждого сервиса писало логи за час. После `kubectl scale` или `rollout restart` число растёт: видно, что новые реплики сразу попали в сбор логов.
+![img_4.png](../../images/img_4.png)
 
-> Скриншот (г): `screenshots/d-quantile.png` — добавить после выполнения запроса.
+```
+_time:1h service.name:=frontend | stats by (http.request.method) quantile(0.95, http.request.duration_seconds) p95
+```
+
+![img_5.png](../../images/img_5.png)
+
+```
+_time:5m service.name:=frontend http.response.status_code:>=400 | stats count_uniq(client.address) clients
+```
+
+![img_6.png](../../images/img_6.png)
 
 ## 6. Ресурсы
 

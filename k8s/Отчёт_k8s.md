@@ -22,19 +22,19 @@ MineCoin — веб-приложение с аккаунтами пользов�
 | `finance-service` | 2 | 2 × 250m | 2 × 384Mi | 2 × 512Mi |
 | `frontend` | 2 | 2 × 50m | 2 × 32Mi | 2 × 64Mi |
 | `postgres` | 1 | 100m | 256Mi | 512Mi |
-| **итого приложение** | | **1200m** | **1856Mi (~1,8 ГиБ)** | **2688Mi (~2,6 ГиБ)** |
+| итого | | 1200m | 1856Mi (~1,8 ГиБ) | 2688Mi (~2,6 ГиБ) |
 | Job `user-migrate`, `finance-migrate`, `user-create-admin` | временно | по 250m | по 384Mi | по 512Mi |
 | VictoriaLogs + Vector (см. [`logging/Отчёт.md`](logging/Отчёт.md)) | 1 + 1 на узел | 150m | 192Mi | 768Mi |
 
 Сверху к этому добавляются системные компоненты самого Kubernetes в `kube-system` (kube-apiserver, controller-manager, scheduler, etcd, CoreDNS): по стандартным настройкам kubeadm это около **750m CPU** и **~170Mi** памяти в `requests`, плюс память самой виртуальной машины, kubelet и среды выполнения контейнеров.
 
-Пиковая нагрузка — момент, когда вместе с Deployment сервисов ещё работает Job создания администратора: **~2,35 CPU** и **~2,6 ГиБ** в `requests` вместе с логированием и системными подами. JVM к тому же реально занимает память почти до лимита (`-XX:MaxRAMPercentage=75`), поэтому фактическое потребление ближе к сумме `limits` (~3,5 ГиБ без системных компонентов).
+Пиковая нагрузка — момент, когда вместе с Deployment сервисов ещё работает Job создания администратора: ~2,35 CPU и ~2,6 ГиБ в `requests` вместе с логированием и системными подами. JVM к тому же реально занимает память почти до лимита (`-XX:MaxRAMPercentage=75`), поэтому фактическое потребление ближе к сумме `limits` (~3,5 ГиБ без системных компонентов).
 
-**Отсюда рекомендация: не меньше 4 CPU и 6 ГиБ памяти для виртуальной машины minikube.** Со значениями minikube по умолчанию (2 CPU) часть подов останется в `Pending` с причиной `Insufficient cpu`.
+Поэтому рекоммендуюется: не меньше 4 CPU и 6 ГиБ памяти для виртуальной машины minikube. Со значениями minikube по умолчанию (2 CPU) часть подов останется в `Pending` из-за `Insufficient cpu`.
 
 ### Запуск minikube
 
-Команды `minikube` для драйвера Hyper-V выполняются в PowerShell **от имени администратора**:
+Команды `minikube` для драйвера Hyper-V выполняются в администраторском PowerShell:
 ```powershell
 minikube start --driver=hyperv --container-runtime=docker --memory=6144 --cpus=4
 ```
@@ -43,12 +43,12 @@ minikube start --driver=hyperv --container-runtime=docker --memory=6144 --cpus=4
 
 Память и CPU задаются **только при создании** виртуальной машины. Если кластер уже был создан с другими значениями, его нужно пересоздать (`minikube delete`, затем `minikube start …`); при этом удаляются все данные кластера.
 
-Проверка, сколько ресурсов на узле уже зарезервировано (раздел `Allocated resources`):
+Проверка, сколько ресурсов на узле уже зарезервировано:
 ```powershell
 kubectl describe node minikube
 ```
 
-Если памяти на компьютере меньше, можно уменьшить число реплик после развёртывания — это сразу освобождает по 384Mi на каждую реплику Java-сервиса:
+Если памяти на компьютере меньше, можно уменьшить число реплик после развёртывания:
 ```powershell
 kubectl scale deployment/user-service deployment/finance-service --replicas=1 -n minecoin
 ```
@@ -167,6 +167,7 @@ minikube start --driver=hyperv --container-runtime=docker --memory=6144 --cpus=4
 ```powershell
 kubectl apply -f k8s/00_namespace.yml
 ```
+```powershell
 kubectl create secret generic minecoin-secrets -n minecoin --from-env-file=k8s/secrets.env
 ```
 ```powershell
