@@ -12,6 +12,12 @@ spec:
         - name: user-migrate
           image: minecoin/user-service:dev
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              memory: 512Mi
           envFrom:
             - configMapRef:
                 name: user-service-config
