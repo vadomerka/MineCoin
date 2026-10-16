@@ -41,3 +41,4 @@ build/
 /FinanceService/.idea/
 .claude/
 k8s/secrets.env
+helm/tls.*
