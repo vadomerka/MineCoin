@@ -1,7 +1,30 @@
 resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
 
-log_format gateway '$remote_addr "$request" $status upstream=$upstream_addr '
-                   'time=$request_time request_id=$request_id';
+map $status $log_level {
+    ~^5     ERROR;
+    ~^4     WARN;
+    default INFO;
+}
+map $http_user_agent $loggable {
+    ~^kube-probe 0;
+    ~^Wget       0;
+    default      1;
+}
+log_format gateway_json escape=json
+    '{'
+    '"@timestamp":"$time_iso8601",'
+    '"log.level":"$log_level",'
+    '"log.logger":"nginx.access",'
+    '"service.name":"frontend",'
+    '"message":"$request_method $uri $status",'
+    '"http.request.method":"$request_method",'
+    '"url.path":"$uri",'
+    '"http.response.status_code":$status,'
+    '"http.request.duration_seconds":$request_time,'
+    '"upstream.address":"$upstream_addr",'
+    '"request_id":"$request_id",'
+    '"client.address":"$remote_addr"'
+    '}';
 
 upstream user_service {
     zone user_service 64k;
@@ -16,7 +39,7 @@ upstream finance_service {
 server {
     listen 80;
     root /usr/share/nginx/html;
-    access_log /var/log/nginx/access.log gateway;
+    access_log /var/log/nginx/access.log gateway_json if=$loggable;
 
     add_header X-Request-Id $request_id always;
 
