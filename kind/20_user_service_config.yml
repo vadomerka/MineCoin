@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-service-config
+  namespace: minecoin
+data:
+  SERVER_PORT: "8081"
+  DB_URL: jdbc:postgresql://postgres:5432/users_db
+  DB_USERNAME: user_svc
+  JWT_TTL: 1h
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
