@@ -1,21 +1,20 @@
 package com.minecoin.finance.service;
 
+import static com.minecoin.finance.domain.OperationType.DEPOSIT;
+import static com.minecoin.finance.domain.OperationType.TRANSFER;
+import static com.minecoin.finance.domain.OperationType.WITHDRAW;
+
 import com.minecoin.finance.domain.Operation;
+import com.minecoin.finance.domain.OperationType;
 import com.minecoin.finance.domain.Wallet;
 import com.minecoin.finance.domain.exception.AmountLimitExceededException;
 import com.minecoin.finance.domain.exception.DomainException;
 import com.minecoin.finance.domain.exception.RecipientNotFoundException;
 import com.minecoin.finance.domain.exception.SelfTransferException;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -67,41 +66,54 @@ public class WalletService {
     }
 
     public Wallet deposit(UUID userId, long amount) {
-        return singleWalletOperation("deposit", amount, () -> {
-            Wallet wallet = lockWallet(userId);
-            wallet.deposit(amount);
-            operationRepository.save(Operation.deposit(wallet, amount));
+        try {
+            Wallet wallet = doSingleOperation(userId, DEPOSIT, amount);
+            metrics.counter(OPERATIONS, "type", tag(DEPOSIT), "result", SUCCESS).increment();
+            metrics.summary(AMOUNT, "type", tag(DEPOSIT)).record(amount);
             return wallet;
-        });
+        } catch (DomainException ex) {
+            metrics.counter(OPERATIONS, "type", tag(DEPOSIT), "result", result(ex)).increment();
+            throw ex;
+        }
     }
 
     public Wallet withdraw(UUID userId, long amount) {
-        return singleWalletOperation("withdraw", amount, () -> {
-            Wallet wallet = lockWallet(userId);
-            wallet.withdraw(amount);
-            operationRepository.save(Operation.withdraw(wallet, amount));
-            return wallet;
-        });
-    }
-
-    private Wallet singleWalletOperation(String type, long amount, Supplier<Wallet> operation) {
         try {
-            checkLimit(amount);
-            Wallet wallet = transactionTemplate.execute(_ -> operation.get());
-            metrics.counter(OPERATIONS, "type", type, "result", SUCCESS).increment();
-            metrics.summary(AMOUNT, "type", type).record(amount);
+            Wallet wallet = doSingleOperation(userId, WITHDRAW, amount);
+            metrics.counter(OPERATIONS, "type", tag(WITHDRAW), "result", SUCCESS).increment();
+            metrics.summary(AMOUNT, "type", tag(WITHDRAW)).record(amount);
             return wallet;
         } catch (DomainException ex) {
-            metrics.counter(OPERATIONS, "type", type, "result", result(ex)).increment();
+            metrics.counter(OPERATIONS, "type", tag(WITHDRAW), "result", result(ex)).increment();
             throw ex;
         }
+    }
+
+    private Wallet doSingleOperation(UUID userId, OperationType type, long amount) {
+        checkLimit(amount);
+        return transactionTemplate.execute(_ -> {
+            Wallet wallet = lockWallet(userId);
+            Operation operation = switch (type) {
+                case DEPOSIT -> {
+                    wallet.deposit(amount);
+                    yield Operation.deposit(wallet, amount);
+                }
+                case WITHDRAW -> {
+                    wallet.withdraw(amount);
+                    yield Operation.withdraw(wallet, amount);
+                }
+                case TRANSFER -> throw new IllegalArgumentException("Transfer is not a single-wallet operation");
+            };
+            operationRepository.save(operation);
+            return wallet;
+        });
     }
 
     public Wallet transfer(UUID userId, String toUsername, long amount) {
         try {
             Wallet from = doTransfer(userId, toUsername, amount);
             metrics.counter(TRANSFERS, "result", SUCCESS).increment();
-            metrics.summary(AMOUNT, "type", "transfer").record(amount);
+            metrics.summary(AMOUNT, "type", tag(TRANSFER)).record(amount);
             return from;
         } catch (DomainException ex) {
             metrics.counter(TRANSFERS, "result", result(ex)).increment();
@@ -177,6 +189,10 @@ public class WalletService {
             log.warn("History is returned without usernames: {}", ex.getMessage());
             return Map.of();
         }
+    }
+
+    private static String tag(OperationType type) {
+        return type.name().toLowerCase(Locale.ROOT);
     }
 
     private static String result(DomainException ex) {

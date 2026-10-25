@@ -243,10 +243,10 @@ class UserApiIT {
         String token = tokenOf("viewer");
         String unknownId = "00000000-0000-0000-0000-000000000001";
 
-        ResponseEntity<List<Map<String, Object>>> response = client.get()
-                .uri("/users/names?ids={a}&ids={b}&ids={c}", bobId, aliceId, unknownId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .retrieve()
+        RestClient.RequestHeadersSpec<?> request = client.get()
+                .uri("/users/names?ids={a}&ids={b}&ids={c}", bobId, aliceId, unknownId);
+        request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        ResponseEntity<List<Map<String, Object>>> response = request.retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {
                 });
 
