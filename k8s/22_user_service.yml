@@ -17,6 +17,10 @@ spec:
     metadata:
       labels:
         app: user-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: /actuator/prometheus
     spec:
       terminationGracePeriodSeconds: 30
       containers:
@@ -24,7 +28,10 @@ spec:
           image: minecoin/user-service:dev
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8081
+            - name: http
+              containerPort: 8081
+            - name: metrics
+              containerPort: 9090
           envFrom:
             - configMapRef:
                 name: user-service-config
@@ -42,19 +49,19 @@ spec:
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8081
+              port: 9090
             periodSeconds: 3
             failureThreshold: 40
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8081
+              port: 9090
             periodSeconds: 10
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8081
+              port: 9090
             periodSeconds: 5
             failureThreshold: 3
           resources:

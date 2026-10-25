@@ -25,10 +25,11 @@ MineCoin — веб-приложение с аккаунтами пользов�
 | итого | | 1200m | 1856Mi (~1,8 ГиБ) | 2688Mi (~2,6 ГиБ) |
 | Job `user-migrate`, `finance-migrate`, `user-create-admin` | временно | по 250m | по 384Mi | по 512Mi |
 | VictoriaLogs + Vector (см. [`logging/Отчёт.md`](logging/Отчёт.md)) | 1 + 1 на узел | 150m | 192Mi | 768Mi |
+| VictoriaMetrics + postgres-exporter (см. [`monitoring/Отчёт.md`](monitoring/Отчёт.md)) | 1 + 1 | 120m | 288Mi | 576Mi |
 
 Сверху к этому добавляются системные компоненты самого Kubernetes в `kube-system` (kube-apiserver, controller-manager, scheduler, etcd, CoreDNS): по стандартным настройкам kubeadm это около **750m CPU** и **~170Mi** памяти в `requests`, плюс память самой виртуальной машины, kubelet и среды выполнения контейнеров.
 
-Пиковая нагрузка — момент, когда вместе с Deployment сервисов ещё работает Job создания администратора: ~2,35 CPU и ~2,6 ГиБ в `requests` вместе с логированием и системными подами. JVM к тому же реально занимает память почти до лимита (`-XX:MaxRAMPercentage=75`), поэтому фактическое потребление ближе к сумме `limits` (~3,5 ГиБ без системных компонентов).
+Пиковая нагрузка — момент, когда вместе с Deployment сервисов ещё работает Job создания администратора: ~2,5 CPU и ~2,9 ГиБ в `requests` вместе с логированием, мониторингом и системными подами. JVM к тому же реально занимает память почти до лимита (`-XX:MaxRAMPercentage=75`), поэтому фактическое потребление ближе к сумме `limits` (~4 ГиБ без системных компонентов).
 
 Поэтому рекоммендуюется: не меньше 4 CPU и 6 ГиБ памяти для виртуальной машины minikube. Со значениями minikube по умолчанию (2 CPU) часть подов останется в `Pending` из-за `Insufficient cpu`.
 
@@ -110,7 +111,7 @@ minikube image load minecoin/frontend:dev
 | **Service** `user-service`, `finance-service` (ClusterIP) | `22_…`, `32_…` | постоянный адрес внутри кластера и балансировка запросов между репликами |
 | **Service** `frontend` (NodePort 30080) | `40_…` | единственная точка входа в приложение снаружи кластера |
 
-**Проверки здоровья** в Deployment сервисов используют эндпоинты Spring Boot Actuator:
+**Проверки здоровья** в Deployment сервисов используют эндпоинты Spring Boot Actuator на отдельном порту управления 9090 (см. [`monitoring/Отчёт.md`](monitoring/Отчёт.md)):
 - `startupProbe` (`/actuator/health/liveness`) — даёт Java-приложению до 120 с на старт;
 - `livenessProbe` — если сервис перестал отвечать, Kubernetes перезапускает контейнер;
 - `readinessProbe` (`/actuator/health/readiness`) — пока под не готов, Service не направляет на него запросы.

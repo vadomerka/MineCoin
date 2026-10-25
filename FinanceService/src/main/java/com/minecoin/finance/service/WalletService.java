@@ -3,15 +3,19 @@ package com.minecoin.finance.service;
 import com.minecoin.finance.domain.Operation;
 import com.minecoin.finance.domain.Wallet;
 import com.minecoin.finance.domain.exception.AmountLimitExceededException;
+import com.minecoin.finance.domain.exception.DomainException;
 import com.minecoin.finance.domain.exception.RecipientNotFoundException;
 import com.minecoin.finance.domain.exception.SelfTransferException;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,23 +29,31 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class WalletService {
 
+    private static final String OPERATIONS = "minecoin.wallet.operations";
+    private static final String TRANSFERS = "minecoin.wallet.transfers";
+    private static final String AMOUNT = "minecoin.wallet.operation.amount";
+    private static final String SUCCESS = "success";
+
     private final WalletRepository walletRepository;
     private final OperationRepository operationRepository;
     private final UserDirectory userDirectory;
     private final TransactionTemplate transactionTemplate;
     private final long maxOperationAmount;
+    private final MeterRegistry metrics;
 
     public WalletService(
             WalletRepository walletRepository,
             OperationRepository operationRepository,
             UserDirectory userDirectory,
             PlatformTransactionManager transactionManager,
-            FinanceProperties properties) {
+            FinanceProperties properties,
+            MeterRegistry metrics) {
         this.walletRepository = walletRepository;
         this.operationRepository = operationRepository;
         this.userDirectory = userDirectory;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.maxOperationAmount = properties.maxOperationAmount();
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -54,25 +66,53 @@ public class WalletService {
         return maxOperationAmount;
     }
 
-    @Transactional
     public Wallet deposit(UUID userId, long amount) {
-        checkLimit(amount);
-        Wallet wallet = lockWallet(userId);
-        wallet.deposit(amount);
-        operationRepository.save(Operation.deposit(wallet, amount));
-        return wallet;
+        return singleWalletOperation("deposit", amount, () -> {
+            Wallet wallet = lockWallet(userId);
+            wallet.deposit(amount);
+            operationRepository.save(Operation.deposit(wallet, amount));
+            return wallet;
+        });
     }
 
-    @Transactional
     public Wallet withdraw(UUID userId, long amount) {
-        checkLimit(amount);
-        Wallet wallet = lockWallet(userId);
-        wallet.withdraw(amount);
-        operationRepository.save(Operation.withdraw(wallet, amount));
-        return wallet;
+        return singleWalletOperation("withdraw", amount, () -> {
+            Wallet wallet = lockWallet(userId);
+            wallet.withdraw(amount);
+            operationRepository.save(Operation.withdraw(wallet, amount));
+            return wallet;
+        });
+    }
+
+    private Wallet singleWalletOperation(String type, long amount, Supplier<Wallet> operation) {
+        try {
+            checkLimit(amount);
+            Wallet wallet = transactionTemplate.execute(_ -> operation.get());
+            metrics.counter(OPERATIONS, "type", type, "result", SUCCESS).increment();
+            metrics.summary(AMOUNT, "type", type).record(amount);
+            return wallet;
+        } catch (DomainException ex) {
+            metrics.counter(OPERATIONS, "type", type, "result", result(ex)).increment();
+            throw ex;
+        }
     }
 
     public Wallet transfer(UUID userId, String toUsername, long amount) {
+        try {
+            Wallet from = doTransfer(userId, toUsername, amount);
+            metrics.counter(TRANSFERS, "result", SUCCESS).increment();
+            metrics.summary(AMOUNT, "type", "transfer").record(amount);
+            return from;
+        } catch (DomainException ex) {
+            metrics.counter(TRANSFERS, "result", result(ex)).increment();
+            throw ex;
+        } catch (UserDirectoryUnavailableException ex) {
+            metrics.counter(TRANSFERS, "result", "user_service_unavailable").increment();
+            throw ex;
+        }
+    }
+
+    private Wallet doTransfer(UUID userId, String toUsername, long amount) {
         checkLimit(amount);
         UserRef recipient = userDirectory.findByUsername(toUsername)
                 .orElseThrow(() -> new RecipientNotFoundException(toUsername));
@@ -137,6 +177,10 @@ public class WalletService {
             log.warn("History is returned without usernames: {}", ex.getMessage());
             return Map.of();
         }
+    }
+
+    private static String result(DomainException ex) {
+        return ex.getCode().toLowerCase(Locale.ROOT);
     }
 
     private static UUID counterpartyWalletId(Operation operation, UUID walletId) {
