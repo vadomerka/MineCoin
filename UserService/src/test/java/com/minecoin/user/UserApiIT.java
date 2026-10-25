@@ -3,6 +3,8 @@ package com.minecoin.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.minecoin.user.service.UserService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -50,6 +52,9 @@ class UserApiIT {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    MeterRegistry metrics;
 
     RestClient client;
 
@@ -126,6 +131,25 @@ class UserApiIT {
 
         assertError(login("bob", PASSWORD), HttpStatus.FORBIDDEN, "USER_BLOCKED");
         assertError(login("bob", "wrong-password"), HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS");
+    }
+
+    @Test
+    void registrationsAndLoginOutcomesAreCounted() {
+        double registrations = counter("minecoin.auth.registrations");
+        double succeeded = counter("minecoin.auth.logins", "result", "success");
+        double invalid = counter("minecoin.auth.logins", "result", "invalid_credentials");
+        double blocked = counter("minecoin.auth.logins", "result", "user_blocked");
+
+        register("bob", "bob@x.com");
+        login("bob", PASSWORD);
+        login("bob", "wrong-password");
+        jdbc.update("UPDATE users SET status = 'BLOCKED' WHERE username = 'bob'");
+        login("bob", PASSWORD);
+
+        assertThat(counter("minecoin.auth.registrations")).isEqualTo(registrations + 1);
+        assertThat(counter("minecoin.auth.logins", "result", "success")).isEqualTo(succeeded + 1);
+        assertThat(counter("minecoin.auth.logins", "result", "invalid_credentials")).isEqualTo(invalid + 1);
+        assertThat(counter("minecoin.auth.logins", "result", "user_blocked")).isEqualTo(blocked + 1);
     }
 
     @Test
@@ -219,10 +243,10 @@ class UserApiIT {
         String token = tokenOf("viewer");
         String unknownId = "00000000-0000-0000-0000-000000000001";
 
-        ResponseEntity<List<Map<String, Object>>> response = client.get()
-                .uri("/users/names?ids={a}&ids={b}&ids={c}", bobId, aliceId, unknownId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .retrieve()
+        RestClient.RequestHeadersSpec<?> request = client.get()
+                .uri("/users/names?ids={a}&ids={b}&ids={c}", bobId, aliceId, unknownId);
+        request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        ResponseEntity<List<Map<String, Object>>> response = request.retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {
                 });
 
@@ -282,6 +306,11 @@ class UserApiIT {
         RestClient.RequestHeadersSpec<?> request = client.delete().uri(uri);
         request.header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         return request.retrieve().toBodilessEntity();
+    }
+
+    private double counter(String name, String... tags) {
+        Counter counter = metrics.find(name).tags(tags).counter();
+        return counter == null ? 0 : counter.count();
     }
 
     private String idOf(ResponseEntity<Map<String, Object>> response) {

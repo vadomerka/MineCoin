@@ -2,13 +2,16 @@ package com.minecoin.user.service;
 
 import com.minecoin.user.domain.User;
 import com.minecoin.user.domain.UserStatus;
+import com.minecoin.user.domain.exception.DomainException;
 import com.minecoin.user.domain.exception.EmailTakenException;
 import com.minecoin.user.domain.exception.InvalidCredentialsException;
 import com.minecoin.user.domain.exception.UserBlockedException;
 import com.minecoin.user.domain.exception.UserNotFoundException;
 import com.minecoin.user.domain.exception.UsernameTakenException;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +26,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MeterRegistry metrics;
 
     @Transactional
     public User register(String username, String email, String password, String displayName) {
@@ -33,19 +37,27 @@ public class UserService {
             throw new EmailTakenException(email);
         }
         User user = User.register(username, email, passwordEncoder.encode(password), displayName);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        metrics.counter("minecoin.auth.registrations").increment();
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public User authenticate(String username, String password) {
-        User user = userRepository.findByUsernameIgnoreCase(username)
-                .filter(candidate -> !candidate.isDeleted())
-                .filter(candidate -> passwordEncoder.matches(password, candidate.getPasswordHash()))
-                .orElseThrow(InvalidCredentialsException::new);
-        if (user.isBlocked()) {
-            throw new UserBlockedException();
+        try {
+            User user = userRepository.findByUsernameIgnoreCase(username)
+                    .filter(candidate -> !candidate.isDeleted())
+                    .filter(candidate -> passwordEncoder.matches(password, candidate.getPasswordHash()))
+                    .orElseThrow(InvalidCredentialsException::new);
+            if (user.isBlocked()) {
+                throw new UserBlockedException();
+            }
+            countLogin("success");
+            return user;
+        } catch (DomainException ex) {
+            countLogin(ex.getCode().toLowerCase(Locale.ROOT));
+            throw ex;
         }
-        return user;
     }
 
     @Transactional
@@ -92,6 +104,10 @@ public class UserService {
     @Transactional
     public void delete(UUID id) {
         findActive(id).delete();
+    }
+
+    private void countLogin(String result) {
+        metrics.counter("minecoin.auth.logins", "result", result).increment();
     }
 
     private User findActive(UUID id) {

@@ -10,6 +10,9 @@ import com.minecoin.finance.domain.exception.AmountLimitExceededException;
 import com.minecoin.finance.domain.exception.InsufficientFundsException;
 import com.minecoin.finance.domain.exception.RecipientNotFoundException;
 import com.minecoin.finance.domain.exception.SelfTransferException;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +59,9 @@ class WalletServiceIT {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    MeterRegistry metrics;
 
     @MockitoBean
     UserDirectory userDirectory;
@@ -129,6 +135,42 @@ class WalletServiceIT {
                 .isInstanceOf(InsufficientFundsException.class);
         assertThat(balanceOf(alice)).isEqualTo(100);
         assertThat(count("operations")).isEqualTo(1);
+    }
+
+    @Test
+    void operationsAndTransfersAreCountedByResult() {
+        double deposits = counter("minecoin.wallet.operations", "type", "deposit", "result", "success");
+        double overdrafts = counter("minecoin.wallet.operations", "type", "withdraw", "result", "insufficient_funds");
+        double overLimit = counter("minecoin.wallet.operations", "type", "deposit", "result", "amount_limit_exceeded");
+        double transfers = counter("minecoin.wallet.transfers", "result", "success");
+        double unknownRecipients = counter("minecoin.wallet.transfers", "result", "recipient_not_found");
+        double unavailable = counter("minecoin.wallet.transfers", "result", "user_service_unavailable");
+        double transferred = amount("transfer");
+        when(userDirectory.findByUsername("nobody")).thenReturn(Optional.empty());
+        when(userDirectory.findByUsername("carol"))
+                .thenThrow(new UserDirectoryUnavailableException(new RuntimeException("down")));
+
+        walletService.deposit(alice, 100);
+        assertThatThrownBy(() -> walletService.withdraw(alice, 101)).isInstanceOf(InsufficientFundsException.class);
+        assertThatThrownBy(() -> walletService.deposit(alice, 1001)).isInstanceOf(AmountLimitExceededException.class);
+        walletService.transfer(alice, "bob", 30);
+        assertThatThrownBy(() -> walletService.transfer(alice, "nobody", 10))
+                .isInstanceOf(RecipientNotFoundException.class);
+        assertThatThrownBy(() -> walletService.transfer(alice, "carol", 10))
+                .isInstanceOf(UserDirectoryUnavailableException.class);
+
+        assertThat(counter("minecoin.wallet.operations", "type", "deposit", "result", "success"))
+                .isEqualTo(deposits + 1);
+        assertThat(counter("minecoin.wallet.operations", "type", "withdraw", "result", "insufficient_funds"))
+                .isEqualTo(overdrafts + 1);
+        assertThat(counter("minecoin.wallet.operations", "type", "deposit", "result", "amount_limit_exceeded"))
+                .isEqualTo(overLimit + 1);
+        assertThat(counter("minecoin.wallet.transfers", "result", "success")).isEqualTo(transfers + 1);
+        assertThat(counter("minecoin.wallet.transfers", "result", "recipient_not_found"))
+                .isEqualTo(unknownRecipients + 1);
+        assertThat(counter("minecoin.wallet.transfers", "result", "user_service_unavailable"))
+                .isEqualTo(unavailable + 1);
+        assertThat(amount("transfer")).isEqualTo(transferred + 30);
     }
 
     @Test
@@ -234,6 +276,16 @@ class WalletServiceIT {
             }
             return succeeded;
         }
+    }
+
+    private double counter(String name, String... tags) {
+        Counter counter = metrics.find(name).tags(tags).counter();
+        return counter == null ? 0 : counter.count();
+    }
+
+    private double amount(String type) {
+        DistributionSummary summary = metrics.find("minecoin.wallet.operation.amount").tag("type", type).summary();
+        return summary == null ? 0 : summary.totalAmount();
     }
 
     private long balanceOf(UUID userId) {
