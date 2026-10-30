@@ -16,6 +16,8 @@ x-finance-env: &finance-env
   USER_SERVICE_URL: ${USER_SERVICE_URL}
   MAX_OPERATION_AMOUNT: ${MAX_OPERATION_AMOUNT:-1000}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOG_FORMAT:-ecs}
+  FAULT_DELAY: ${FAULT_DELAY:-0ms}
+  FAULT_ERROR_RATE: ${FAULT_ERROR_RATE:-0}
 
 services:
   postgres:
@@ -128,6 +130,19 @@ services:
       retries: 20
       start_period: 10s
     stop_grace_period: 30s
+
+  prober:
+    image: minecoin/prober:${IMAGE_TAG:-dev}
+    build:
+      context: .
+      dockerfile: Prober/Dockerfile
+    restart: unless-stopped
+    environment:
+      PROBER_BASE_URL: http://frontend
+      PROBER_PASSWORD: ${PROBER_PASSWORD:?PROBER_PASSWORD is required}
+    depends_on:
+      frontend:
+        condition: service_healthy
 
 volumes:
   postgres-data:

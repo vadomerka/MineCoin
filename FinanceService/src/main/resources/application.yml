@@ -38,6 +38,8 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+      slo:
+        http.server.requests: 100ms,300ms,1s
 
 app:
   finance:
@@ -48,6 +50,9 @@ app:
     url: ${USER_SERVICE_URL}
     connect-timeout: 2s
     read-timeout: 3s
+  fault:
+    delay: ${FAULT_DELAY:0ms}
+    error-rate: ${FAULT_ERROR_RATE:0}
 
 springdoc:
   swagger-ui:

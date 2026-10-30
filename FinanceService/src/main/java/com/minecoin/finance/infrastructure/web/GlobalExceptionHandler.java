@@ -2,6 +2,7 @@ package com.minecoin.finance.infrastructure.web;
 
 import com.minecoin.finance.domain.exception.DomainException;
 import com.minecoin.finance.domain.exception.RecipientNotFoundException;
+import com.minecoin.finance.infrastructure.fault.InjectedFaultException;
 import com.minecoin.finance.service.UserDirectoryUnavailableException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         return problem(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied");
+    }
+
+    @ExceptionHandler(InjectedFaultException.class)
+    public ProblemDetail handleInjectedFault(InjectedFaultException ex) {
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "INJECTED_FAULT", ex.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

@@ -20,6 +20,7 @@
     <modules>
         <module>UserService</module>
         <module>FinanceService</module>
+        <module>Prober</module>
     </modules>
 
     <properties>
