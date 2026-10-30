@@ -26,6 +26,7 @@ MineCoin — веб-приложение с аккаунтами пользов�
 | Job `user-migrate`, `finance-migrate`, `user-create-admin` | временно | по 250m | по 384Mi | по 512Mi |
 | VictoriaLogs + Vector (см. [`logging/Отчёт.md`](logging/Отчёт.md)) | 1 + 1 на узел | 150m | 192Mi | 768Mi |
 | VictoriaMetrics + postgres-exporter (см. [`monitoring/Отчёт.md`](monitoring/Отчёт.md)) | 1 + 1 | 120m | 288Mi | 576Mi |
+| Пробер (см. [`slo/Отчёт.md`](slo/Отчёт.md)) | 1 | 50m | 96Mi | 160Mi |
 
 Сверху к этому добавляются системные компоненты самого Kubernetes в `kube-system` (kube-apiserver, controller-manager, scheduler, etcd, CoreDNS): по стандартным настройкам kubeadm это около **750m CPU** и **~170Mi** памяти в `requests`, плюс память самой виртуальной машины, kubelet и среды выполнения контейнеров.
 

@@ -1,5 +1,5 @@
 server:
-  retentionPeriod: 14d
+  retentionPeriod: 31d
 
   persistentVolume:
     enabled: true
