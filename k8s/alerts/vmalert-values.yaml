@@ -1,0 +1,40 @@
+server:
+  fullnameOverride: vmalert
+
+  datasource:
+    url: http://vm-single-victoria-metrics-single-server.monitoring.svc:8428
+
+  remoteWrite:
+    url: http://vm-single-victoria-metrics-single-server.monitoring.svc:8428
+
+  remoteRead:
+    url: http://vm-single-victoria-metrics-single-server.monitoring.svc:8428
+
+  configMap: vmalert-rules
+
+  extraArgs:
+    envflag.enable: true
+    envflag.prefix: VM_
+    loggerFormat: json
+    configCheckInterval: 30s
+    rule:
+      - /config/alert-rules.yaml
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+alertmanager:
+  enabled: true
+  fullnameOverride: alertmanager
+  configSecret: alertmanager-config
+
+  resources:
+    requests:
+      cpu: 20m
+      memory: 48Mi
+    limits:
+      memory: 96Mi

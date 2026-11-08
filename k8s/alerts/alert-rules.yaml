@@ -1,0 +1,56 @@
+groups:
+  - name: minecoin-service
+    interval: 30s
+    rules:
+      - alert: ProberFailing
+        expr: |
+          sum(rate(minecoin_prober_runs_total{result="failure"}[5m]))
+            / sum(rate(minecoin_prober_runs_total[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+          category: service
+        annotations:
+          summary: "Пробер не может пройти сценарий пользователя"
+          description: "Неудачных запусков за 5 минут: {{ $value | humanizePercentage }}. Шаги: главная, вход, кошелёк, пополнение, перевод."
+
+      - alert: LoginBruteForce
+        expr: sum(increase(minecoin_auth_logins_total{result="invalid_credentials"}[5m])) > 20
+        for: 1m
+        labels:
+          severity: warning
+          category: service
+        annotations:
+          summary: "Всплеск неудачных входов: возможен подбор пароля"
+          description: "Неудачных входов за 5 минут: {{ $value | humanize }}."
+
+  - name: minecoin-framework
+    interval: 30s
+    rules:
+      - alert: HighHttp5xxRate
+        expr: |
+          sum by (application) (rate(http_server_requests_seconds_count{namespace="minecoin", status=~"5.."}[5m]))
+            / sum by (application) (rate(http_server_requests_seconds_count{namespace="minecoin"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: framework
+        annotations:
+          summary: "Много ответов 5xx в {{ $labels.application }}"
+          description: "Доля ответов 5xx за 5 минут: {{ $value | humanizePercentage }}."
+
+  - name: minecoin-runtime
+    interval: 30s
+    rules:
+      - alert: JvmHeapHigh
+        expr: |
+          sum by (application, pod) (jvm_memory_used_bytes{area="heap"})
+            / sum by (application, pod) (jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 5m
+        keep_firing_for: 5m
+        labels:
+          severity: warning
+          category: runtime
+        annotations:
+          summary: "Куча JVM почти заполнена: {{ $labels.pod }}"
+          description: "Занято {{ $value | humanizePercentage }} кучи в {{ $labels.application }}."
