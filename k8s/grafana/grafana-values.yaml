@@ -1,0 +1,51 @@
+fullnameOverride: grafana
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 384Mi
+
+testFramework:
+  enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: VictoriaMetrics
+        uid: victoriametrics
+        type: prometheus
+        access: proxy
+        url: http://vm-single-victoria-metrics-single-server.monitoring.svc:8428
+        isDefault: true
+        jsonData:
+          timeInterval: 15s
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: minecoin
+        orgId: 1
+        folder: MineCoin
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/minecoin
+
+dashboardsConfigMaps:
+  minecoin: grafana-dashboard-minecoin
+
+grafana.ini:
+  analytics:
+    check_for_updates: false
+    reporting_enabled: false
+  users:
+    default_theme: dark
