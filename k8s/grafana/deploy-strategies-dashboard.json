@@ -1,0 +1,846 @@
+{
+  "uid": "minecoin-deploy",
+  "title": "MineCoin: стратегии деплоя",
+  "description": "Распределение трафика finance-service между версиями 1.0.0 и 2.0.0 через Envoy Gateway.",
+  "tags": [
+    "minecoin",
+    "deploy"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "schemaVersion": 41,
+  "version": 1,
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Поды finance-service по версиям",
+      "description": "Сколько подов каждой версии сейчас отдают метрики.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "count by (version) (process_uptime_seconds{application=\"finance-service\"})",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Доля трафика за минуту",
+      "description": "Доля запросов к finance-service, которую обслужила каждая версия.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (version) (rate(http_server_requests_seconds_count{application=\"finance-service\"}[1m])) / scalar(sum(rate(http_server_requests_seconds_count{application=\"finance-service\"}[1m])))",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Успешные прогоны пробера, 5 мин",
+      "description": "Пробер ходит через Envoy Gateway: при сбое новой версии успешность падает.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum(rate(minecoin_prober_runs_total{result=\"success\"}[5m])) / sum(rate(minecoin_prober_runs_total[5m]))",
+          "legendFormat": "пробер",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.95
+              },
+              {
+                "color": "green",
+                "value": 0.99
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value_and_name",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 5,
+      "title": "RPS finance-service по версиям",
+      "description": "Rolling: v1 плавно сменяется v2. Blue/Green: ступенька. Canary: 90/10, 50/50, 0/100. Shadow: v2 получает копию GET-запросов.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (version) (rate(http_server_requests_seconds_count{application=\"finance-service\"}[30s]))",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 6,
+      "title": "Доля трафика по версиям",
+      "description": "Доли версий в общем потоке запросов к finance-service. При Shadow v2 считает зеркальные копии, поэтому сумма больше 100 %.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (version) (rate(http_server_requests_seconds_count{application=\"finance-service\"}[30s])) / scalar(sum(rate(http_server_requests_seconds_count{application=\"finance-service\"}[30s])))",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 7,
+      "title": "Ответы 5xx по версиям",
+      "description": "Ошибки сервера по версиям: при канарейке с ошибками видно, что ломается только новая версия.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (version) (rate(http_server_requests_seconds_count{application=\"finance-service\", status=~\"5..\"}[30s]))",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 8,
+      "title": "Задержка p95 по версиям",
+      "description": "95-й перцентиль времени ответа finance-service по версиям.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "histogram_quantile(0.95, sum by (version, le) (rate(http_server_requests_seconds_bucket{application=\"finance-service\"}[1m])))",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 9,
+      "title": "Прогоны пробера в минуту",
+      "description": "Успешные и неудачные прогоны пробера: при Rolling и Blue/Green неудачных быть не должно.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (result) (increase(minecoin_prober_runs_total[1m]))",
+          "legendFormat": "{{result}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failure"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 10,
+      "title": "Запросы по версиям, методам и URI",
+      "description": "Для Shadow: на v2 приходят только GET, POST (пополнения и переводы) не зеркалируются.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "sum by (version, method, uri) (rate(http_server_requests_seconds_count{application=\"finance-service\"}[1m]))",
+          "legendFormat": "{{version}} {{method}} {{uri}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 11,
+      "title": "Поды по версиям",
+      "description": "Число подов каждой версии во времени: при Rolling поды сменяются по одному.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "count by (version) (process_uptime_seconds{application=\"finance-service\"})",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "lineInterpolation": "stepAfter",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "1.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2.0.0"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

@@ -35,6 +35,7 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+      version: ${app.version}
     distribution:
       percentiles-histogram:
         http.server.requests: true
@@ -42,6 +43,7 @@ management:
         http.server.requests: 100ms,300ms,1s
 
 app:
+  version: ${APP_VERSION:dev}
   finance:
     max-operation-amount: ${MAX_OPERATION_AMOUNT:1000}
   jwt:

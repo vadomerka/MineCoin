@@ -5,7 +5,7 @@ MineCoin — веб-приложение с аккаунтами пользов�
 | Компонент | Образ | Назначение |
 |---|---|---|
 | `user-service` | `minecoin/user-service:dev` | пользователи, вход (JWT), профиль |
-| `finance-service` | `minecoin/finance-service:dev` | кошельки, операции, история |
+| `finance-service` | `minecoin/finance-service:1.0.0` | кошельки, операции, история |
 | `frontend` | `minecoin/frontend:dev` | nginx: раздаёт HTML/CSS/JS и проксирует `/api/*` в сервисы |
 | `postgres` | `postgres:17-alpine` | PostgreSQL, базы `users_db` и `finance_db` |
 
@@ -27,6 +27,8 @@ MineCoin — веб-приложение с аккаунтами пользов�
 | VictoriaLogs + Vector (см. [`logging/Отчёт.md`](logging/Отчёт.md)) | 1 + 1 на узел | 150m | 192Mi | 768Mi |
 | VictoriaMetrics + postgres-exporter (см. [`monitoring/Отчёт.md`](monitoring/Отчёт.md)) | 1 + 1 | 120m | 288Mi | 576Mi |
 | Пробер (см. [`slo/Отчёт_slo.md`](slo/Отчёт_slo.md)) | 1 | 50m | 96Mi | 160Mi |
+| Envoy Gateway: контроллер + Envoy-прокси (см. [`strategies/Отчёт.md`](strategies/Отчёт.md)) | 1 + 1 | 160m | 416Mi | 1280Mi |
+| `finance-service-v2` на время стратегий деплоя | 2 | 2 × 250m | 2 × 384Mi | 2 × 512Mi |
 
 Сверху к этому добавляются системные компоненты самого Kubernetes в `kube-system` (kube-apiserver, controller-manager, scheduler, etcd, CoreDNS): по стандартным настройкам kubeadm это около **750m CPU** и **~170Mi** памяти в `requests`, плюс память самой виртуальной машины, kubelet и среды выполнения контейнеров.
 
