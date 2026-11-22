@@ -3,6 +3,7 @@
 )
 
 $ErrorActionPreference = "Stop"
+$EnvoyGatewayVersion = "v1.10.0"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
 function Invoke-Step([string]$Title, [scriptblock]$Action) {
@@ -29,6 +30,11 @@ if (-not $SkipBuild) {
     }
     Invoke-Step "Сборка образов" {
         docker compose build user-migrate finance-migrate frontend prober
+    }
+    foreach ($version in "1.0.0", "2.0.0") {
+        Invoke-Step "Образ finance-service:$version" {
+            docker build -q -f FinanceService/Dockerfile --build-arg APP_VERSION=$version -t minecoin/finance-service:$version .
+        }
     }
     Invoke-Step "Образы в minikube" {
         docker images "minecoin/*" --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedSince}}"
@@ -60,8 +66,13 @@ Invoke-Step "Миграции" {
     kubectl wait --for=condition=Complete job/user-migrate job/finance-migrate -n minecoin --timeout=180s
 }
 
+Invoke-Step "Envoy Gateway" {
+    kubectl apply --server-side -f "https://github.com/envoyproxy/gateway/releases/download/$EnvoyGatewayVersion/install.yaml" | Out-Null
+    kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
+}
+
 Invoke-Step "Сервисы и создание администратора" {
-    kubectl apply -f k8s/22_user_service.yml -f k8s/32_finance_service.yml -f k8s/40_frontend.yml -f k8s/23_user_create_admin_job.yml -f k8s/50_prober.yml
+    kubectl apply -f k8s/22_user_service.yml -f k8s/32_finance_service.yml -f k8s/40_frontend.yml -f k8s/23_user_create_admin_job.yml -f k8s/50_prober.yml -f k8s/60_gateway.yml
     kubectl rollout restart deployment/user-service deployment/finance-service deployment/frontend deployment/prober -n minecoin
 }
 
@@ -71,10 +82,14 @@ foreach ($deployment in "user-service", "finance-service", "frontend", "prober")
     }
 }
 
+Invoke-Step "Ожидание Gateway" {
+    kubectl wait --timeout=180s -n minecoin gateway/eg --for=condition=Programmed
+}
+
 Invoke-Step "Состояние подов" {
     kubectl get pods -n minecoin
 }
 
 Write-Host ""
-Write-Host "Адрес приложения:" -ForegroundColor Green
-minikube service frontend -n minecoin --url
+Write-Host "Адрес приложения через Envoy Gateway:" -ForegroundColor Green
+Write-Host "http://$(minikube ip):30081"

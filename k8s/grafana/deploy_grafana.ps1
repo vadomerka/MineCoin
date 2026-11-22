@@ -20,9 +20,9 @@ Invoke-Step "VictoriaMetrics" {
     helm upgrade --install vm-single vm/victoria-metrics-single -n monitoring --create-namespace -f k8s/monitoring/vmsingle-values.yaml
 }
 
-Invoke-Step "ConfigMap с дашбордом MineCoin" {
+Invoke-Step "ConfigMap с дашбордами MineCoin" {
     kubectl delete configmap grafana-dashboard-minecoin -n monitoring --ignore-not-found
-    kubectl create configmap grafana-dashboard-minecoin -n monitoring --from-file=minecoin-dashboard.json=k8s/grafana/minecoin-dashboard.json
+    kubectl create configmap grafana-dashboard-minecoin -n monitoring --from-file=minecoin-dashboard.json=k8s/grafana/minecoin-dashboard.json --from-file=deploy-strategies-dashboard.json=k8s/grafana/deploy-strategies-dashboard.json
 }
 
 Invoke-Step "Grafana" {

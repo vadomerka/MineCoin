@@ -14,4 +14,6 @@ RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build /workspace/FinanceService/target/finance-service.jar app.jar
 USER app
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]

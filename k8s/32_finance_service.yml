@@ -25,7 +25,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: finance-service
-          image: minecoin/finance-service:dev
+          image: minecoin/finance-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

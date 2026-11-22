@@ -4,7 +4,7 @@ metadata:
   name: prober-config
   namespace: minecoin
 data:
-  PROBER_BASE_URL: http://frontend.minecoin.svc.cluster.local
+  PROBER_BASE_URL: http://minecoin-gateway.envoy-gateway-system.svc.cluster.local
   PROBER_USERNAME: prober
   PROBER_RECIPIENT: prober_sink
   PROBER_INTERVAL_SECONDS: "10"

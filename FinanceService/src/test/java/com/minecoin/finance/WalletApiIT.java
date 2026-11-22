@@ -8,6 +8,7 @@ import com.minecoin.finance.service.UserDirectory;
 import com.minecoin.finance.service.UserDirectoryUnavailableException;
 import com.minecoin.finance.service.UserRef;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -47,11 +48,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
                 "spring.flyway.enabled=true",
                 "app.finance.max-operation-amount=1000",
                 "app.jwt.secret=" + WalletApiIT.SECRET,
-                "app.user-service.url=http://localhost:1"
+                "app.user-service.url=http://localhost:1",
+                "app.version=" + WalletApiIT.VERSION
         })
 class WalletApiIT {
 
     static final String SECRET = "test-secret-test-secret-test-secret-123";
+    static final String VERSION = "9.9.9-test";
 
     private static final ParameterizedTypeReference<Map<String, Object>> JSON = new ParameterizedTypeReference<>() {
     };
@@ -65,6 +68,9 @@ class WalletApiIT {
 
     @Autowired
     JdbcTemplate jdbc;
+
+    @Autowired
+    MeterRegistry metrics;
 
     @MockitoBean
     UserDirectory userDirectory;
@@ -206,6 +212,36 @@ class WalletApiIT {
     @Test
     void limitsExposeMaxOperationAmount() {
         assertThat(get("/limits", aliceToken).getBody()).containsEntry("maxOperationAmount", 1000);
+    }
+
+    @Test
+    void versionIsPublicAndNamesServiceVersionAndPod() {
+        ResponseEntity<Map<String, Object>> response = get("/version", null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody())
+                .containsEntry("service", "finance-service")
+                .containsEntry("version", VERSION)
+                .containsKey("pod");
+    }
+
+    @Test
+    void everyResponseCarriesReleaseHeaders() {
+        ResponseEntity<Map<String, Object>> version = get("/version", null);
+        ResponseEntity<Map<String, Object>> wallet = get("/me", aliceToken);
+        ResponseEntity<Map<String, Object>> unauthorized = get("/me", null);
+
+        assertThat(wallet.getHeaders().getFirst("X-App-Version")).isEqualTo(VERSION);
+        assertThat(wallet.getHeaders().getFirst("X-Pod")).isEqualTo(version.getBody().get("pod"));
+        assertThat(unauthorized.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(unauthorized.getHeaders().getFirst("X-App-Version")).isEqualTo(VERSION);
+    }
+
+    @Test
+    void metricsAreTaggedWithVersion() {
+        post("/me/deposit", aliceToken, Map.of("amount", 10));
+
+        assertThat(metrics.find("minecoin.wallet.operations").tag("version", VERSION).counters()).isNotEmpty();
     }
 
     private ResponseEntity<Map<String, Object>> get(String uri, String token) {
